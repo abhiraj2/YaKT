@@ -8,7 +8,6 @@ from time import sleep, process_time
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--port', required=True)
 parser.add_argument('-nl', '--nodes', default="./nodes.txt")
-parser.add_argument('-s', '--start', required=True)
 args = parser.parse_args()
 
 nl = open(args.nodes, "r+")
@@ -41,6 +40,7 @@ def hello():
 async def appendEntries(message: Request):
     message = await message.json()
     print(message)
+    node.election_start = process_time()
     res = node.AppendEntriesRes(message)
     return res
 
@@ -49,7 +49,6 @@ async def appendEntries(message: Request):
 async def registerBroker(record: Request):
     parsed  = await record.json()
     print(parsed)
-    node.election_start = process_time()
     res = node.AppendLogEntries(parsed['fields'])
     return res
 

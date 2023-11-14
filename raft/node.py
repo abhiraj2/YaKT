@@ -80,6 +80,9 @@ class Node:
             return res
 
     def AppendEntriesRes(self, message):
+
+        self.current_leader = message["leader_id"]
+
         if message['term'] < self.current_term :
             return {
                 "term": self.current_term,
@@ -130,6 +133,7 @@ class Node:
             }
         
     def StartElection(self):
+        logging.debug("Starting Election")
         self.state <<= 1 # Move to candidate state
         self.voted_for = (self.current_term, self.id)
         message = {
@@ -146,7 +150,8 @@ class Node:
             _ = threading.Thread(target=self._sendVoteReq, args=(node, message, votes))
             _.start()
         
-        while sum(votes) <= len(self.node_list)/2:
+        start = process_time()
+        while sum(votes) <= len(self.node_list)/2 and (process_time() - start) <= 20:
             continue
         
         if sum(votes) > len(self.node_list)/2:
@@ -163,8 +168,8 @@ class Node:
         logging.debug("Timer Started")
         self.election_start = process_time()
         nex = self.election_start
-        while nex-self.election_start <= self.election_timeout and self.state != 4:
-            if nex-self.election_start >= self.election_timeout:
+        while (nex-self.election_start) <= self.election_timeout and self.state != 4:
+            if (nex-self.election_start) >= self.election_timeout:
                 self.StartElection()
             nex = process_time()
         logging.debug("Exiting Timer")
@@ -195,6 +200,7 @@ class Node:
     
     def _transitionToLeader(self):
         self.state = 4
+        self.current_term += 1
         #self.heartbeat_timer = self.heartbeat_timeout-1
         self.StartHeartbeatTimer()
 
