@@ -3,7 +3,7 @@ import uvicorn
 import argparse
 from raft.node import Node
 import threading
-from time import sleep
+from time import sleep, process_time
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--port', required=True)
@@ -41,7 +41,6 @@ def hello():
 async def appendEntries(message: Request):
     message = await message.json()
     print(message)
-    node._transitionToFollower()
     res = node.AppendEntriesRes(message)
     return res
 
@@ -50,6 +49,7 @@ async def appendEntries(message: Request):
 async def registerBroker(record: Request):
     parsed  = await record.json()
     print(parsed)
+    node.election_start = process_time()
     res = node.AppendLogEntries(parsed['fields'])
     return res
 

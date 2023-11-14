@@ -31,6 +31,8 @@ class Node:
         self.last_applied = 0
         self.election_timer_thread= None
         self.heartbeat_timer_thread = None
+        self.election_start = 0
+        self.heartbeat_start = 0
 
         # for leader, to be reinitialized
         self.next_index = [0 for _ in range(len(self.node_list))]
@@ -53,27 +55,40 @@ class Node:
         retAcks[follower[0]] = 1 
         logging.debug("Sending Request to " + str(follower[1]) + " " + str(follower[0]))
         res = {
-            "success": False
         }
-        while 'success' not in res.keys() or res['success'] == False:
+        while 'success' not in res.keys():
             logging.debug("Trying Append")
             try:
                 res = requests.post(f"http://localhost:{follower[1]}/appendEntries", json=message)
                 res.raise_for_status()
                 res = res.json()
+                logging.debug("Response "+ str(res))
             except Exception as e:
                 logging.debug("Error contacting " + str(follower[1]))
                 logging.debug(str(e))
                 continue
-
-        logging.debug("Stopping Thread for Append RPC from leader to follower " + str(follower[0]))
-        return res
+        
+        if not res["success"]:
+            if res["term"] > self.current_term:
+                self._transitionToFollower()
+            else:
+                if self.next_index[follower[0]] > 0:
+                    self.next_index[follower[0]] -=  1
+                    self.AppendEntriesReq(follower, retAcks)
+        else:
+            logging.debug("Stopping Thread for Append RPC from leader to follower " + str(follower[0]))
+            return res
 
     def AppendEntriesRes(self, message):
         if message['term'] < self.current_term :
             return {
                 "term": self.current_term,
                 "success": False
+            }
+        if message["prevLogTerm"] == "NULL":
+            return {
+                "term": self.current_term,
+                "success": True   
             }
         if message['prevLogIndex'] >= len(self.logs) or message['prevLogTerm'] != self.logs[message["prevLogIndex"]]:
             return {
@@ -146,10 +161,10 @@ class Node:
 
     def IncrementElectionTimer(self):
         logging.debug("Timer Started")
-        start = process_time()
-        nex = start
-        while nex - start <= self.election_timeout and self.state != 4:
-            if nex - start >= self.election_timeout:
+        self.election_start = process_time()
+        nex = self.election_start
+        while nex-self.election_start <= self.election_timeout and self.state != 4:
+            if nex-self.election_start >= self.election_timeout:
                 self.StartElection()
             nex = process_time()
         logging.debug("Exiting Timer")
@@ -162,10 +177,10 @@ class Node:
 
     def IncrementHeartbeatTimer(self):
         logging.debug("Heartbeat Timer Started")
-        start = process_time()
-        nex = start
-        while (nex - start) < self.heartbeat_timeout+5 and self.state == 4:
-            if (nex - start) >= self.heartbeat_timeout:
+        self.heartbeat_start = process_time()
+        nex = self.heartbeat_start
+        while (nex - self.heartbeat_start) < self.heartbeat_timeout+5 and self.state == 4:
+            if (nex - self.heartbeat_start) >= self.heartbeat_timeout:
                 retAcks = [0 for _ in self.node_list]
                 for node in self.node_list:
                     logging.debug(f"{node[0]} {node[1]}")
@@ -174,7 +189,7 @@ class Node:
                     _ = threading.Thread(target=self.AppendEntriesReq, args=(node, retAcks))
                     _.start()
                 #self.heartbeat_timer = 0
-                start = process_time()
+                self.heartbeat_start = process_time()
             nex = process_time()
         logging.debug("Exiting Heartbeat Timer")
     
