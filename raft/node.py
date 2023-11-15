@@ -153,6 +153,7 @@ class Node:
         if self.state != 4:
             return {
                 "current_leader": self.current_leader,
+                "leader_port": self.node_list[int(self.current_leader)][1],
                 "success": False
             }
         else:
