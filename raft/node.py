@@ -257,6 +257,10 @@ class Node:
         self.state = 4
         self.current_term += 1
         #self.heartbeat_timer = self.heartbeat_timeout-1
+        with self.next_lock:
+            with self.logs_lock:
+                for i in self.node_list:
+                    self.next_index[i[0]] = len(self.logs)
         self.StartHeartbeatTimer()
 
     def _transitionToFollower(self):
