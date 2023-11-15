@@ -39,7 +39,6 @@ def hello():
 @app.post("/appendEntries")
 async def appendEntries(message: Request):
     message = await message.json()
-    print(message)
     node.election_start = process_time()
     res = node.AppendEntriesRes(message)
     return res
