@@ -4,11 +4,26 @@ import argparse
 from raft.node import Node
 import threading
 from time import sleep, process_time
+import os
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--port', required=True)
 parser.add_argument('-nl', '--nodes', default="./nodes.txt")
+parser.add_argument("-f", "--file", required=True)
 args = parser.parse_args()
+
+
+log_file = args.file
+read_logs = []
+if os.path.isfile(log_file):
+    f = open(log_file, "r+")
+    for line in f.readlines():
+        line = line.strip()
+        read_logs.append(line)
+    f.close()
+else:
+    f = open(log_file, "w+")
+    f.close()
 
 nl = open(args.nodes, "r+")
 node_list = []
@@ -18,12 +33,12 @@ for i, line in enumerate(nl.readlines()):
     if(int(line) == int(args.port)):
         s_id = i
     node_list.append((i, int(line)))
-
+nl.close()
 #sleep(int(args.start))
 
 app = FastAPI()
 
-node = Node(node_list, s_id)
+node = Node(node_list, s_id, read_logs, log_file)
 
 
 def StartApplication(app, port):

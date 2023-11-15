@@ -1,4 +1,5 @@
 from uuid import uuid4
+import json
 from random import randint
 import threading
 import logging
@@ -10,7 +11,7 @@ MIN_TIME = 20
 logging.basicConfig(level=logging.DEBUG)
 
 class Node:
-    def __init__(self, server_list, s_id):
+    def __init__(self, server_list, s_id, read_logs, log_file):
         # Persistent states, remain same across all terms
         self.id = s_id
         self.current_term = 0
@@ -18,9 +19,15 @@ class Node:
         logging.debug(self.election_timeout)
         self.heartbeat_timeout = 10
         
+        self.file_lock = threading.Lock()
+        self.log_file = log_file
+        
         self.voted_for = (None, None)
         self.logs_lock = threading.Lock()
         self.logs = []
+        with self.logs_lock:
+            for x in read_logs:
+                self.logs.append(x)
         self.node_list = []
         self.current_leader = None
         for node in server_list:
@@ -28,7 +35,7 @@ class Node:
 
         # volatile
         self.state = 1 # one hot coding for follower(1), candidate(2), leader(4)
-        self.commit_index = 0
+        self.commit_index = len(self.logs)
         self.last_applied = 0
         self.election_timer_thread= None
         self.heartbeat_timer_thread = None
@@ -39,7 +46,7 @@ class Node:
 
         # for leader, to be reinitialized
         self.next_lock = threading.Lock()
-        self.next_index = [0 for _ in range(len(self.node_list))]
+        self.next_index = [len(self.logs) for _ in range(len(self.node_list))]
         self.match_index = [0 for _ in range(len(self.node_list))]
 
 
@@ -59,7 +66,8 @@ class Node:
         retAcks[follower[0]] = 1 
         logging.debug("Sending Request to " + str(follower[1]) + " " + str(follower[0]))
         res = {}
-        while 'success' not in res.keys():
+        tries = 0
+        while 'success' not in res.keys() and tries < 2:
             logging.debug("Trying Append")
             try:
                 res = requests.post(f"http://localhost:{follower[1]}/appendEntries", json=message)
@@ -69,9 +77,10 @@ class Node:
             except Exception as e:
                 logging.debug("Error contacting " + str(follower[1]))
                 logging.debug(str(e))
+                tries +=1
                 continue
         
-        if not res["success"]:
+        if "success" in res.keys() and not res["success"]:
             if res["term"] > self.current_term:
                 self.current_term = res['term']
                 self._transitionToFollower()
@@ -80,18 +89,20 @@ class Node:
                     if self.next_index[follower[0]] > 0:
                         self.next_index[follower[0]] -=  1
                         self.AppendEntriesReq(follower, retAcks)
-        else:
+        elif "success" in res.keys() and res["success"]:
             with self.next_lock:
                 with self.logs_lock:
                     self.next_index[follower[0]] = len(self.logs)
             logging.debug("Stopping Thread for Append RPC from leader to follower " + str(follower[0]))
             return res
+        else:
+            return {
+                "success": False
+            }
 
     def AppendEntriesRes(self, message):
-        logging.debug(message)
-        logging.debug(self.logs)
+        logging.debug(str(message))
         self.current_leader = message["leader_id"]
-
         if message['term'] < self.current_term :
             return {
                 "term": self.current_term,
@@ -122,6 +133,15 @@ class Node:
                     else:
                         self.logs.append(ele)
                 logging.debug("Logs" + str(self.logs))
+                if self.commit_index < message['leaders_commit']:
+                    with self.file_lock:
+                        f = open(self.log_file, "a+")
+                        for x in self.logs[self.commit_index:message['leaders_commit']]:
+                            f.write(x)
+                            f.write("\n")
+                        f.close()
+                    self.commit_index = message['leaders_commit']
+                        
             return {
                     "term": self.current_term,
                     "success": True
@@ -138,8 +158,10 @@ class Node:
         else:
             with self.heartbeat_lock:
                 self.heartbeat_start = process_time()
-            self.logs.append(message)
+            with self.logs_lock:
+                self.logs.append(json.dumps(message))
             retAcks = [0 for _ in range(len(self.node_list))]
+            retAcks[self.id] = 1
             logging.debug(self.next_index)
             for node in self.node_list:
                 if(node[0] == self.id):
@@ -150,7 +172,12 @@ class Node:
                 # logging.info("Sum " + str(sum(retAcks)))
                 continue
             self.commit_index += 1
-
+            with self.file_lock:
+                f = open(self.log_file, "a+")
+                with self.logs_lock:
+                    f.write(self.logs[-1])
+                    f.write("\n")
+                f.close()
             return{
                 "success": True
             }
@@ -167,6 +194,7 @@ class Node:
         }
 
         votes = [0 for _ in self.node_list] 
+        votes[self.id] = 1
         for node in self.node_list:
             if node[0] == self.id:
                 continue
