@@ -108,6 +108,10 @@ class Node:
                 "term": self.current_term,
                 "success": False
             }
+        else:
+            self.current_term = message["term"]
+        
+
         if message["prevLogIndex"] == -1 and message["prevLogTerm"] == "NULL":
             with self.logs_lock:
                 for i, ele in enumerate(message['entries']):
@@ -185,7 +189,7 @@ class Node:
         
     def StartElection(self):
         logging.debug("Starting Election")
-        self.state <<= 1 # Move to candidate state
+        self._transitionToCandidate()
         self.voted_for = (self.current_term, self.id)
         message = {
             "term": self.current_term,
@@ -256,7 +260,6 @@ class Node:
     
     def _transitionToLeader(self):
         self.state = 4
-        self.current_term += 1
         #self.heartbeat_timer = self.heartbeat_timeout-1
         with self.next_lock:
             with self.logs_lock:
@@ -269,6 +272,9 @@ class Node:
         self.election_timer = 0
         self.StartElectionTimer()
         
+    def _transitionToCandidate(self):
+        self.state <<= 1 # Move to candidate state
+        self.current_term += 1
 
     def VoteResponse(self, request):
         if request['term'] < self.current_term:
@@ -277,13 +283,13 @@ class Node:
                 "voteGranted": False
             }
         else:
-            if self.voted_for[0] == self.current_term :
+            if self.voted_for[0] == request["term"] :
                 return {
                     "term": self.current_term,
                     "voteGranted": False
                 }
             else:
-                self.voted_for = (self.current_term, request['candidate_id'])
+                self.voted_for = (request["term"], request['candidate_id'])
                 return {
                     "term": self.current_term,
                     "voteGranted": True
@@ -291,7 +297,9 @@ class Node:
             
     def _sendVoteReq(self, node,  message, votes):
         res = None
-        while not res:
+        tries = 0
+        
+        while not res and tries < 2:
             try:
                 res = requests.post(f"http://localhost:{node[1]}/voteRequest", json=message)
                 logging.debug("Boooooooo "+ str(res.json()))
@@ -300,5 +308,6 @@ class Node:
                 if res['voteGranted']:
                     votes[node[0]] = 1
             except Exception as e:
+                tries += 1
                 logging.debug("Error contacting " + str(node[1]))
                 logging.debug(str(e))
