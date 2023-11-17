@@ -7,6 +7,9 @@ import requests
 from time import process_time
 MAX_TIME = 50
 MIN_TIME = 20
+FOLLOWER = 1
+CANDIDATE = 2
+LEADER = 4
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -34,7 +37,7 @@ class Node:
             self.node_list.append(node)
 
         # volatile
-        self.state = 1 # one hot coding for follower(1), candidate(2), leader(4)
+        self.state = FOLLOWER
         self.commit_index = len(self.logs)
         self.last_applied = 0
         self.election_timer_thread= None
@@ -260,7 +263,7 @@ class Node:
         logging.debug("Exiting Heartbeat Timer")
     
     def _transitionToLeader(self):
-        self.state = 4
+        self.state = LEADER
         #self.heartbeat_timer = self.heartbeat_timeout-1
         with self.next_lock:
             with self.logs_lock:
@@ -269,12 +272,12 @@ class Node:
         self.StartHeartbeatTimer()
 
     def _transitionToFollower(self):
-        self.state = 1
+        self.state = FOLLOWER
         self.election_timer = 0
         self.StartElectionTimer()
         
     def _transitionToCandidate(self):
-        self.state <<= 1 # Move to candidate state
+        self.state = CANDIDATE
         self.current_term += 1
 
     def VoteResponse(self, request):
