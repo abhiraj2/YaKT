@@ -63,7 +63,7 @@ class Node:
             "leaders_commit": self.commit_index
         }
         
-        retAcks[follower[0]] = 1 
+        
         logging.debug("Sending Request to " + str(follower[1]) + " " + str(follower[0]))
         res = {}
         tries = 0
@@ -90,6 +90,7 @@ class Node:
                         self.next_index[follower[0]] -=  1
                         self.AppendEntriesReq(follower, retAcks)
         elif "success" in res.keys() and res["success"]:
+            retAcks[follower[0]] = 1 
             with self.next_lock:
                 with self.logs_lock:
                     self.next_index[follower[0]] = len(self.logs)
