@@ -1,3 +1,4 @@
+from distutils.command.config import config
 from uuid import uuid4
 import json
 from random import randint
@@ -6,6 +7,7 @@ import logging
 import requests
 from time import perf_counter
 import json
+import os
 MAX_TIME = 50
 MIN_TIME = 20
 FOLLOWER = 1
@@ -191,6 +193,8 @@ class Node:
                     f.write(self.logs[-1])
                     f.write("\n")
                 f.close()
+
+            self.WriteToConfig()
             return{
                 "success": True
             }
@@ -334,12 +338,14 @@ class Node:
         with self.conf_lock:
             f = open(self.conf_file, "r")
             data = json.load(f)
+            f.close()
         return data["RegisterBrokerRecords"]["records"]
     
     def getBroker(self, id):
         with self.conf_lock:
             f = open(self.conf_file, "r")
             data = json.load(f)
+            f.close()
         records = data["RegisterBrokerRecords"]["records"]
         broker = None
         for record in records:
@@ -352,6 +358,7 @@ class Node:
         with self.conf_lock:
             f = open(self.conf_file,"r")
             data = json.load(f)
+            f.close()
             records = data["TopicRecord"]["records"]
             for record in records:
                 if record["UUID"] == TopicID:
@@ -370,8 +377,33 @@ class Node:
         
             
     
-    def WriteToConfig():
-        pass
+    def WriteToConfig(self):
+        with self.logs_lock and self.conf_lock:
+            config_data = {}
+            f2 = open(self.conf_file, "r")
+            if os.stat(self.conf_file).st_size != 0:
+                config_data = json.load(f2)
+            f2.close()
+
+            line = self.logs[self.commit_index-1]
+            data = json.loads(line) 
+            if data["name"] == "RegistrationChangeBrokerRecord" and config_data["RegisterBrokerRecord"] is not None:
+                for i,record in enumerate(config_data["RegisterBrokerRecord"]["records"]):
+                    if record["brokerId"] == data["fields"]["brokerId"]:
+                        config_data["RegisterBrokerRecord"]["records"][i] = data["fields"]
+                        config_data["RegisterBrokerRecord"]["timestamps"][i] = data["timestamp"]
+
+            else:
+                if data["name"] not in config_data.keys():
+                    config_data[data["name"]] = {"records":[], "timestamp": []}
+                config_data[data["name"]]["records"].append(data["fields"])
+                config_data[data["name"]]["timestamp"].append(data["timestamp"])
+
+            f = open(self.conf_file, "w+")
+            f.write(json.dumps(config_data))
+            f.close()
+
+
         #RegisterBrokerRecord: register
         #TopicRecord: create topic
         #PartitionRecord: 
@@ -385,3 +417,4 @@ class Node:
         
         #BrokerMgmt: a route takes previous offset/timestamp and returns metadata updates since then / if later than 10 minutes send entire snapshot; send diff of all metadata that has been updated
         #ClientMgmt: a route takes previous offset/timestamp and returns metadata updates since then / if later than 10 minutes send entire snapshot; send only topics, partitions and broker info
+
