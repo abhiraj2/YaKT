@@ -374,7 +374,29 @@ class Node:
             f = open(self.conf_file,"w+")
             f.write(json.dumps(data))
             f.close()
-        
+
+    def AddProducerIdRecord(self,record):
+        with self.conf_lock:
+            f = open(self.conf_file,"r")
+            data = json.load(f)
+            data["ProducerIdRecord"]["records"].append(record)
+            f.close()
+            f = open(self.conf_file,"w+")
+            f.write(json.dumps(data))
+            f.close()
+
+    def AddPartitionRecord(self,record):
+        with self.conf_lock:
+            f = open(self.conf_file,"r")
+            data = json.load(f)
+            data["PartitionRecord"]["records"].append(record)
+            f.close()
+            f = open(self.conf_file,"w+")
+            f.write(json.dumps(data))
+            f.close()
+    
+    
+
             
     
     def WriteToConfig(self):
