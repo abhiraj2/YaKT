@@ -336,3 +336,14 @@ class Node:
             if record["brokerId"] == id:
                 broker = record
         return broker
+    def GetTopicRecord(TopicID):
+        output = None
+        with self.conf_lock:
+            f = open(self.conf_file,"r")
+            data = json.load(f)
+            records = data["TopicRecord"]
+
+            for record in records:
+                if record["UUID"] == TopicID:
+                    output = record
+            return output

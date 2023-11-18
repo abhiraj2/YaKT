@@ -71,11 +71,6 @@ async def registerBroker(record: Request):
     res = node.AppendLogEntries(parsed)
     return res
 
-@app.get("/getAllBrokers")
-async def getBrokers():
-    res = node.getAllBrokers()
-    return res
-
 @app.get("/getBrokerByID/{id}")
 async def getBrokerByID(id):
     res = node.getBroker(id)
@@ -87,7 +82,16 @@ async def voteRequest(record: Request):
     res = node.VoteResponse(parsed)
     return res
 
+@app.post("/topicRecord")
+async def AddTopicRecord(record:Request):
+    parsed = await record.json()
+    res = node.AppendLogEntries(parsed)
+    return res
 
+@app.get("/topicRecord/{TopicID}")
+async def GetTopicRecord(TopicID):
+    res = node.GetTopicRecord(TopicID)
+    return res
 
 app_thread = threading.Thread(target=StartApplication, args=(app, int(args.port)))
 app_thread.start()
