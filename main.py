@@ -10,6 +10,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--port', required=True)
 parser.add_argument('-nl', '--nodes', default="./nodes.txt")
 parser.add_argument("-f", "--file", required=True)
+parser.add_argument("-c", "--config", required=True)
 args = parser.parse_args()
 
 
@@ -24,6 +25,10 @@ if os.path.isfile(log_file):
 else:
     f = open(log_file, "w+")
     f.close()
+
+if not os.path.isfile(args.config):
+    f_config = open(args.config, "w+")
+    f_config.close()
 
 nl = open(args.nodes, "r+")
 node_list = []
@@ -63,7 +68,7 @@ async def appendEntries(message: Request):
 async def registerBroker(record: Request):
     parsed  = await record.json()
     print(parsed)
-    res = node.AppendLogEntries(parsed['fields'])
+    res = node.AppendLogEntries(parsed)
     return res
 
 
@@ -72,6 +77,8 @@ async def voteRequest(record: Request):
     parsed = await record.json()
     res = node.VoteResponse(parsed)
     return res
+
+
 
 app_thread = threading.Thread(target=StartApplication, args=(app, int(args.port)))
 app_thread.start()

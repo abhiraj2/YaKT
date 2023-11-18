@@ -277,7 +277,7 @@ class Node:
         self.StartElectionTimer()
         
     def _transitionToCandidate(self):
-        self.state = CANDIDATE
+        self.state = CANDIDATE 
         self.current_term += 1
 
     def VoteResponse(self, request):
