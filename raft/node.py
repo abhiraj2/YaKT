@@ -289,12 +289,7 @@ class Node:
         self.StartElectionTimer()
         
     def _transitionToCandidate(self):
-<<<<<<< Updated upstream
         self.state = CANDIDATE 
-=======
-        logging.debug("Transitioning to candidate")
-        self.state = CANDIDATE
->>>>>>> Stashed changes
         self.current_term += 1
 
     def VoteResponse(self, request):
@@ -355,9 +350,9 @@ class Node:
         with self.conf_lock:
             f = open(self.conf_file,"r")
             data = json.load(f)
-            records = data["TopicRecord"]
+        records = data["TopicRecord"]
 
-            for record in records:
-                if record["UUID"] == TopicID:
-                    output = record
-            return output
+        for record in records:
+            if record["UUID"] == TopicID:
+                output = record
+        return output
