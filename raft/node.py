@@ -249,7 +249,9 @@ class Node:
         with self.heartbeat_lock:
             self.heartbeat_start = process_time()
         nex = self.heartbeat_start
+
         while (nex - self.heartbeat_start) <= self.heartbeat_timeout and self.state == 4:
+            nex = process_time()
             if (nex - self.heartbeat_start) >= self.heartbeat_timeout:
                 logging.debug("Heartbeat Timeout, Starting Requests")
                 retAcks = [0 for _ in self.node_list]
@@ -262,11 +264,16 @@ class Node:
                 #self.heartbeat_timer = 0
                 logging.debug("Sent Requests after timeout")
                 with self.heartbeat_lock:
+                    #logging.debug("Setting heartbeat start "+str(self.heartbeat_start))
                     self.heartbeat_start = process_time()
-            nex = process_time()
+                    #logging.debug("Setting heartbeat start "+str(self.heartbeat_start)+" "+str(nex))
+            
+            #logging.debug(str(self.state))
+            #logging.debug("Setting heartbeat start "+str(self.heartbeat_start)+" "+str(nex))
         logging.debug("Exiting Heartbeat Timer")
     
     def _transitionToLeader(self):
+        logging.debug("Transitioning to leader")
         self.state = LEADER
         #self.heartbeat_timer = self.heartbeat_timeout-1
         with self.next_lock:
@@ -276,12 +283,18 @@ class Node:
         self.StartHeartbeatTimer()
 
     def _transitionToFollower(self):
+        logging.debug("Transitioning to follower")
         self.state = FOLLOWER
         self.election_timer = 0
         self.StartElectionTimer()
         
     def _transitionToCandidate(self):
+<<<<<<< Updated upstream
         self.state = CANDIDATE 
+=======
+        logging.debug("Transitioning to candidate")
+        self.state = CANDIDATE
+>>>>>>> Stashed changes
         self.current_term += 1
 
     def VoteResponse(self, request):
