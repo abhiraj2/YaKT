@@ -4,7 +4,7 @@ from random import randint
 import threading
 import logging
 import requests
-from time import process_time
+from time import perf_counter
 import json
 MAX_TIME = 50
 MIN_TIME = 20
@@ -170,7 +170,7 @@ class Node:
             }
         else:
             with self.heartbeat_lock:
-                self.heartbeat_start = process_time()
+                self.heartbeat_start = perf_counter()
             with self.logs_lock:
                 self.logs.append(json.dumps(message))
             retAcks = [0 for _ in range(len(self.node_list))]
@@ -214,8 +214,8 @@ class Node:
             _ = threading.Thread(target=self._sendVoteReq, args=(node, message, votes))
             _.start()
         
-        start = process_time()
-        while sum(votes) <= len(self.node_list)/2 and (process_time() - start) <= 20:
+        start = perf_counter()
+        while sum(votes) <= len(self.node_list)/2 and (perf_counter() - start) <= 20:
             continue
         
         if sum(votes) > len(self.node_list)/2:
@@ -230,12 +230,15 @@ class Node:
 
     def IncrementElectionTimer(self):
         logging.debug("Timer Started")
-        self.election_start = process_time()
+        self.election_start = perf_counter()
         nex = self.election_start
         while (nex-self.election_start) <= self.election_timeout and self.state != 4:
+            nex = perf_counter()
             if (nex-self.election_start) >= self.election_timeout:
                 self.StartElection()
-            nex = process_time()
+            
+        
+        logging.debug(f"{nex} {self.election_start}")    
         logging.debug("Exiting Timer")
     
     def StartHeartbeatTimer(self):
@@ -247,11 +250,11 @@ class Node:
     def IncrementHeartbeatTimer(self):
         logging.debug("Heartbeat Timer Started")
         with self.heartbeat_lock:
-            self.heartbeat_start = process_time()
+            self.heartbeat_start = perf_counter()
         nex = self.heartbeat_start
 
         while (nex - self.heartbeat_start) <= self.heartbeat_timeout and self.state == 4:
-            nex = process_time()
+            nex = perf_counter()
             if (nex - self.heartbeat_start) >= self.heartbeat_timeout:
                 logging.debug("Heartbeat Timeout, Starting Requests")
                 retAcks = [0 for _ in self.node_list]
@@ -265,7 +268,8 @@ class Node:
                 logging.debug("Sent Requests after timeout")
                 with self.heartbeat_lock:
                     #logging.debug("Setting heartbeat start "+str(self.heartbeat_start))
-                    self.heartbeat_start = process_time()
+                    self.heartbeat_start = perf_counter()
+                    #logging.debug("Setting heartbeat start "+str(self.heartbeat_start)+" "+str(nex))
             
         logging.debug("Exiting Heartbeat Timer")
     

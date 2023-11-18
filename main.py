@@ -3,7 +3,7 @@ import uvicorn
 import argparse
 from raft.node import Node
 import threading
-from time import sleep, process_time
+from time import sleep, perf_counter
 import os
 
 parser = argparse.ArgumentParser()
@@ -60,7 +60,7 @@ def hello():
 @app.post("/appendEntries")
 async def appendEntries(message: Request):
     message = await message.json()
-    node.election_start = process_time()
+    node.election_start = perf_counter()
     res = node.AppendEntriesRes(message)
     return res
 
