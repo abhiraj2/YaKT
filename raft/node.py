@@ -266,10 +266,7 @@ class Node:
                 with self.heartbeat_lock:
                     #logging.debug("Setting heartbeat start "+str(self.heartbeat_start))
                     self.heartbeat_start = process_time()
-                    #logging.debug("Setting heartbeat start "+str(self.heartbeat_start)+" "+str(nex))
             
-            #logging.debug(str(self.state))
-            #logging.debug("Setting heartbeat start "+str(self.heartbeat_start)+" "+str(nex))
         logging.debug("Exiting Heartbeat Timer")
     
     def _transitionToLeader(self):
@@ -289,7 +286,8 @@ class Node:
         self.StartElectionTimer()
         
     def _transitionToCandidate(self):
-        self.state = CANDIDATE 
+        logging.debug("Transitioning to candidate")
+        self.state = CANDIDATE
         self.current_term += 1
 
     def VoteResponse(self, request):
@@ -350,12 +348,23 @@ class Node:
         with self.conf_lock:
             f = open(self.conf_file,"r")
             data = json.load(f)
-        records = data["TopicRecord"]
-
-        for record in records:
-            if record["UUID"] == TopicID:
-                output = record
-        return output
+            records = data["TopicRecord"]["records"]
+            for record in records:
+                if record["UUID"] == TopicID:
+                    output = record
+            return output
+        
+    def CreateTopicRecord(self,record):
+        with self.conf_lock:
+            f = open(self.conf_file,"r")
+            data = json.load(f)
+            data["TopicRecord"]["records"].append(record)
+            f.close()
+            f = open(self.conf_file,"w+")
+            f.write(json.dumps(data))
+            f.close()
+        
+            
     
     def WriteToConfig():
         pass
