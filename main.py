@@ -56,6 +56,7 @@ def hello():
         "hello":"TAs"
     }
 
+#These API are used to message between nodes.
 @app.post("/appendEntries")
 async def appendEntries(message: Request):
     message = await message.json()
@@ -63,7 +64,14 @@ async def appendEntries(message: Request):
     res = node.AppendEntriesRes(message)
     return res
 
+@app.post("/voteRequest")
+async def voteRequest(record: Request):
+    parsed = await record.json()
+    res = node.VoteResponse(parsed)
+    return res
 
+
+#These API are endpoints used by client
 @app.post("/registerBroker")
 async def registerBroker(record: Request):
     parsed  = await record.json()
@@ -76,10 +84,9 @@ async def getBrokerByID(id):
     res = node.getBroker(id)
     return res
 
-@app.post("/voteRequest")
-async def voteRequest(record: Request):
-    parsed = await record.json()
-    res = node.VoteResponse(parsed)
+@app.get("/getAllBrokers")
+async def getBrokers():
+    res = node.getAllBrokers()
     return res
 
 @app.post("/topicRecord")
@@ -92,6 +99,53 @@ async def AddTopicRecord(record:Request):
 async def GetTopicRecord(TopicID):
     res = node.GetTopicRecord(TopicID)
     return res
+
+@app.post("/producerIdsRecord")
+async def ProducerIdsRecord(record:Request):
+    parsed = await record.json()
+    res = node.AppendLogEntries(parsed)
+    return res
+
+@app.put("/brokerRegisterChangeBrokerRecord")
+async def UpdateBrokerRecord(record:Request):
+    parsed = await record.json()
+    res = node.AppendLogEntries(parsed)
+    return res
+
+@app.delete("/brokerRegisterChangeBrokerRecord")
+async def UnregisterBroker(record:Request):
+    parsed = await record.json()
+    res = node.AppendLogEntries(parsed)
+    return res
+
+@app.post("/partitionRecord")
+async def CreatePartition(record:Request):
+    parsed = await record.json()
+    res = node.AppendLogEntries(parsed)
+    return res
+
+@app.post("/partitionRecord/remove")
+async def RemoveReplica(record:Request):
+    parsed = await record.json()
+    res = node.AppendLogEntries(parsed)
+    return res
+
+@app.post("/partitionRecord/add")
+async def AddReplica(record:Request):
+    parsed = await record.json()
+    res = node.AppendLogEntries(parsed)
+    return res
+
+
+@app.post("/BrokerMgmt")
+async def BrokerManagement(record:Request):
+    #What??
+    pass
+
+@app.post("/ClientMgmt")
+async def ClientManagement(record:Request):
+    #What? Again
+    pass
 
 app_thread = threading.Thread(target=StartApplication, args=(app, int(args.port)))
 app_thread.start()

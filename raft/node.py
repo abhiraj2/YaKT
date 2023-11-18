@@ -356,3 +356,19 @@ class Node:
             if record["UUID"] == TopicID:
                 output = record
         return output
+    
+    def WriteToConfig():
+        pass
+        #RegisterBrokerRecord: register
+        #TopicRecord: create topic
+        #PartitionRecord: 
+                        #create partition 
+                        # remove a replica; increment the epoch on update;
+                        #add a replica to partition; increment the epoch on update
+        #ProducerIdsRecord: register a producer from a broker
+        #BrokerRegistrationChangeBrokerRecord:
+                        # updates to broker; increment the epoch on changes;
+                        #unregister a broker
+        
+        #BrokerMgmt: a route takes previous offset/timestamp and returns metadata updates since then / if later than 10 minutes send entire snapshot; send diff of all metadata that has been updated
+        #ClientMgmt: a route takes previous offset/timestamp and returns metadata updates since then / if later than 10 minutes send entire snapshot; send only topics, partitions and broker info
