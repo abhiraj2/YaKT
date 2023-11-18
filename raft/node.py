@@ -5,6 +5,7 @@ import threading
 import logging
 import requests
 from time import process_time
+import json
 MAX_TIME = 50
 MIN_TIME = 20
 FOLLOWER = 1
@@ -14,7 +15,7 @@ LEADER = 4
 logging.basicConfig(level=logging.DEBUG)
 
 class Node:
-    def __init__(self, server_list, s_id, read_logs, log_file):
+    def __init__(self, server_list, s_id, read_logs, log_file, conf_file):
         # Persistent states, remain same across all terms
         self.id = s_id
         self.current_term = 0
@@ -24,6 +25,9 @@ class Node:
         
         self.file_lock = threading.Lock()
         self.log_file = log_file
+
+        self.conf_lock = threading.Lock()
+        self.conf_file = conf_file
         
         self.voted_for = (None, None)
         self.logs_lock = threading.Lock()
@@ -315,3 +319,20 @@ class Node:
                 tries += 1
                 logging.debug("Error contacting " + str(node[1]))
                 logging.debug(str(e))
+
+    def getAllBrokers(self):
+        with self.conf_lock:
+            f = open(self.conf_file, "r")
+            data = json.load(f)
+        return data["RegisterBrokerRecords"]["records"]
+    
+    def getBroker(self, id):
+        with self.conf_lock:
+            f = open(self.conf_file, "r")
+            data = json.load(f)
+        records = data["RegisterBrokerRecords"]["records"]
+        broker = None
+        for record in records:
+            if record["brokerId"] == id:
+                broker = record
+        return broker

@@ -43,7 +43,7 @@ nl.close()
 
 app = FastAPI()
 
-node = Node(node_list, s_id, read_logs, log_file)
+node = Node(node_list, s_id, read_logs, log_file, args.config)
 
 
 def StartApplication(app, port):
@@ -71,6 +71,15 @@ async def registerBroker(record: Request):
     res = node.AppendLogEntries(parsed)
     return res
 
+@app.get("/getAllBrokers")
+async def getBrokers():
+    res = node.getAllBrokers()
+    return res
+
+@app.get("/getBrokerByID/{id}")
+async def getBrokerByID(id):
+    res = node.getBroker(id)
+    return res
 
 @app.post("/voteRequest")
 async def voteRequest(record: Request):
