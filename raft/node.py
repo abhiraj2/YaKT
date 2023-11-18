@@ -336,7 +336,8 @@ class Node:
             if record["brokerId"] == id:
                 broker = record
         return broker
-    def GetTopicRecord(TopicID):
+    
+    def GetTopicRecord(self,TopicID):
         output = None
         with self.conf_lock:
             f = open(self.conf_file,"r")
