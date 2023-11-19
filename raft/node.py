@@ -1,5 +1,5 @@
 from distutils.command.config import config
-from uuid import uuid4
+import datetime
 import json
 from random import randint
 import threading
@@ -493,3 +493,45 @@ class Node:
         #BrokerMgmt: a route takes previous offset/timestamp and returns metadata updates since then / if later than 10 minutes send entire snapshot; send diff of all metadata that has been updated
         #ClientMgmt: a route takes previous offset/timestamp and returns metadata updates since then / if later than 10 minutes send entire snapshot; send only topics, partitions and broker info
 
+    def sendBrokerUpdates(self, record):
+        if self.state != LEADER:
+            return {
+                "current_leader": self.current_leader,
+                "leader_port": self.node_list[int(self.current_leader)][1],
+                "success": False
+            }
+        request_time = datetime.datetime.fromtimestamp(record["timestamp"])
+        now_time = datetime.datetime.now()
+
+        if (now_time - request_time) > datetime.timedelta(minutes=10):
+            with self.conf_lock:
+                f = open(self.conf_file)
+                data = json.load(f)
+                return {
+                    "type": "Copy",
+                    "data": data
+                }
+        else:
+            with self.logs_lock:
+                s_idx = 0
+                for idx, log in enumerate(self.logs):
+                    data = json.loads(log)
+                    if request_time < datetime.datetime.fromtimestamp(data["timestamp"]):
+                        s_idx = idx
+                        break
+                local_copy = []
+                for log in self.logs[s_idx:]:
+                    local_copy.append(json.loads(log))
+                return {
+                    "type": "Partial",
+                    "data": local_copy
+                }
+
+    def sendClientUpdates(self, record):
+        request_time = datetime.datetime.fromtimestamp(int(record["timestamp"]))
+        now_time = datetime.datetime.now()
+
+        if (now_time - request_time) > datetime.timedelta(minutes=10):
+            print("brooo red alert")
+        else:
+            logging.info("broooo green alert")

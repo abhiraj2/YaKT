@@ -138,15 +138,15 @@ async def AddReplica(record:Request):
     return res
 
 
-@app.post("/BrokerMgmt")
+@app.post("/BrokerUpdates")
 async def BrokerManagement(record:Request):
-    #What??
-    pass
+    record = await record.json()
+    return node.sendBrokerUpdates(record)
 
-@app.post("/ClientMgmt")
+@app.post("/ClientUpdates")
 async def ClientManagement(record:Request):
-    #What? Again
-    pass
+    record = await record.json()
+    return node.sendClientUpdates(record)
 
 app_thread = threading.Thread(target=StartApplication, args=(app, int(args.port)))
 app_thread.start()
