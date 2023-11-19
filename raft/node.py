@@ -338,64 +338,87 @@ class Node:
 
     def getAllBrokers(self):
         with self.conf_lock:
+            data = {}
             f = open(self.conf_file, "r")
-            data = json.load(f)
+            if os.stat(self.conf_file).st_size != 0:
+                data = json.load(f)
             f.close()
-        return data["RegisterBrokerRecords"]["records"]
+        if "RegisterBrokerRecord" in data.keys():
+            return data["RegisterBrokerRecord"]["records"]
+        else:
+            return {}
     
-    def getBroker(self, id):
+    def getBroker(self, id: int):
         with self.conf_lock:
+            data = {}
             f = open(self.conf_file, "r")
-            data = json.load(f)
+            if os.stat(self.conf_file).st_size != 0:
+                data = json.load(f)
             f.close()
-        records = data["RegisterBrokerRecords"]["records"]
-        broker = None
+        if "RegisterBrokerRecord" in data.keys():
+            records = data["RegisterBrokerRecord"]["records"]
+        else:
+            records = {}
+        broker = {}
         for record in records:
             if record["brokerId"] == id:
                 broker = record
         return broker
     
     def GetTopicRecord(self,TopicID):
-        output = None
+        output = {}
         with self.conf_lock:
-            f = open(self.conf_file,"r")
-            data = json.load(f)
+            data = {}
+            f = open(self.conf_file, "r")
+            if os.stat(self.conf_file).st_size != 0:
+                data = json.load(f)
             f.close()
+        if "TopicRecord" in data.keys():
             records = data["TopicRecord"]["records"]
-            for record in records:
-                if record["UUID"] == TopicID:
-                    output = record
-            return output
+        else:
+            records = {}
+        for record in records:
+            if record["topicUUID"] == TopicID:
+                output = record
+        return output
         
-    def CreateTopicRecord(self,record):
-        with self.conf_lock:
-            f = open(self.conf_file,"r")
-            data = json.load(f)
-            data["TopicRecord"]["records"].append(record)
-            f.close()
-            f = open(self.conf_file,"w+")
-            f.write(json.dumps(data))
-            f.close()
+    # def CreateTopicRecord(self,record): #timestamp to be added
+    #     with self.conf_lock:
+    #         data = {}
+    #         f = open(self.conf_file, "r")
+    #         if os.stat(self.conf_file).st_size != 0:
+    #             data = json.load(f)
 
-    def AddProducerIdRecord(self,record):
-        with self.conf_lock:
-            f = open(self.conf_file,"r")
-            data = json.load(f)
-            data["ProducerIdRecord"]["records"].append(record)
-            f.close()
-            f = open(self.conf_file,"w+")
-            f.write(json.dumps(data))
-            f.close()
+            
+    #         data["TopicRecord"]["records"].append(record)
+    #         f.close()
+    #         f = open(self.conf_file,"w+")
+    #         f.write(json.dumps(data))
+    #         f.close()
 
-    def AddPartitionRecord(self,record):
-        with self.conf_lock:
-            f = open(self.conf_file,"r")
-            data = json.load(f)
-            data["PartitionRecord"]["records"].append(record)
-            f.close()
-            f = open(self.conf_file,"w+")
-            f.write(json.dumps(data))
-            f.close()
+    # def AddProducerIdRecord(self,record):#timestamp to be added
+    #     with self.conf_lock:
+    #         data = {}
+    #         f = open(self.conf_file, "r")
+    #         if os.stat(self.conf_file).st_size != 0:
+    #             data = json.load(f)
+    #         data["ProducerIdRecord"]["records"].append(record)
+    #         f.close()
+    #         f = open(self.conf_file,"w+")
+    #         f.write(json.dumps(data))
+    #         f.close()
+
+    # def AddPartitionRecord(self,record):#timestamp to be added
+    #     with self.conf_lock:
+    #         data = {}
+    #         f = open(self.conf_file, "r")
+    #         if os.stat(self.conf_file).st_size != 0:
+    #             data = json.load(f)
+    #         f.close()
+    #         data["PartitionRecord"]["records"].append(record)
+    #         f = open(self.conf_file,"w+")
+    #         f.write(json.dumps(data))
+    #         f.close()
     
     
 
@@ -413,11 +436,11 @@ class Node:
             for idx in range(start, end):
                 line = self.logs[idx]
                 data = json.loads(line) 
-                if data["name"] == "RegistrationChangeBrokerRecord" and config_data["RegisterBrokerRecord"] is not None:
+                if data["name"] == "RegistrationChangeBrokerRecord" and "RegisterBrokerRecord" in config_data.keys():
                     for i,record in enumerate(config_data["RegisterBrokerRecord"]["records"]):
                         if record["brokerId"] == data["fields"]["brokerId"]:
                             config_data["RegisterBrokerRecord"]["records"][i] = data["fields"]
-                            config_data["RegisterBrokerRecord"]["timestamps"][i] = data["timestamp"]
+                            config_data["RegisterBrokerRecord"]["timestamp"][i] = data["timestamp"]
 
                 else:
                     if data["name"] not in config_data.keys():

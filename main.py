@@ -80,7 +80,8 @@ async def registerBroker(record: Request):
     return res
 
 @app.get("/getBrokerByID/{id}")
-async def getBrokerByID(id):
+async def getBrokerByID(id: int):
+    print(id)
     res = node.getBroker(id)
     return res
 
