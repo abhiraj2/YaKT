@@ -421,7 +421,7 @@ class Node:
     #         f.close()
     
     
-
+    
             
     
     def WriteToConfig(self, start, end):
@@ -441,13 +441,20 @@ class Node:
                         if record["brokerId"] == data["fields"]["brokerId"]:
                             config_data["RegisterBrokerRecord"]["records"][i] = data["fields"]
                             config_data["RegisterBrokerRecord"]["timestamp"][i] = data["timestamp"]
-
                 elif data["name"] == "AddReplica":
                     replicas = data["fields"]["addingReplicas"]
                     config_data["PartitionRecord"]["records"]["replicas"].extend(replicas)
                     config_data["PartitionRecord"]["records"]["partitionEpoch"] += 1
+
                 elif data["name"] == "RemoveReplica":
-                    pass
+                    remReplicas = data["fields"]["removingReplicas"]
+                    for replica in remReplicas:
+                        if replica in config_data["PartitionRecord"]["records"]["replicas"]:
+                            config_data["PartittionRecord"]["records"]["replicas"].remove(replica)
+                            
+                    config_data["PartitionRecord"]["records"]["partitionEpoch"] += 1
+
+
                 else:
                     if data["name"] not in config_data.keys():
                         config_data[data["name"]] = {"records":[], "timestamp": []}
