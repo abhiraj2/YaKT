@@ -154,6 +154,8 @@ class Node:
                             f.write(x)
                             f.write("\n")
                         f.close()
+
+                    self.WriteToConfig(self.commit_index, message['leaders_commit'])
                     self.commit_index = message['leaders_commit']
                         
             return {
@@ -186,7 +188,6 @@ class Node:
             while sum(retAcks) <= len(self.node_list)/2:
                 # logging.info("Sum " + str(sum(retAcks)))
                 continue
-            self.commit_index += 1
             with self.file_lock:
                 f = open(self.log_file, "a+")
                 with self.logs_lock:
@@ -194,7 +195,8 @@ class Node:
                     f.write("\n")
                 f.close()
 
-            self.WriteToConfig()
+            self.WriteToConfig(self.commit_index, self.commit_index+1)
+            self.commit_index += 1
             return{
                 "success": True
             }
@@ -399,7 +401,7 @@ class Node:
 
             
     
-    def WriteToConfig(self):
+    def WriteToConfig(self, start, end):
         with self.logs_lock and self.conf_lock:
             config_data = {}
             f2 = open(self.conf_file, "r")
@@ -407,22 +409,24 @@ class Node:
                 config_data = json.load(f2)
             f2.close()
 
-            line = self.logs[self.commit_index-1]
-            data = json.loads(line) 
-            if data["name"] == "RegistrationChangeBrokerRecord" and config_data["RegisterBrokerRecord"] is not None:
-                for i,record in enumerate(config_data["RegisterBrokerRecord"]["records"]):
-                    if record["brokerId"] == data["fields"]["brokerId"]:
-                        config_data["RegisterBrokerRecord"]["records"][i] = data["fields"]
-                        config_data["RegisterBrokerRecord"]["timestamps"][i] = data["timestamp"]
+            #line = self.logs[self.commit_index-1]
+            for idx in range(start, end):
+                line = self.logs[idx]
+                data = json.loads(line) 
+                if data["name"] == "RegistrationChangeBrokerRecord" and config_data["RegisterBrokerRecord"] is not None:
+                    for i,record in enumerate(config_data["RegisterBrokerRecord"]["records"]):
+                        if record["brokerId"] == data["fields"]["brokerId"]:
+                            config_data["RegisterBrokerRecord"]["records"][i] = data["fields"]
+                            config_data["RegisterBrokerRecord"]["timestamps"][i] = data["timestamp"]
 
-            else:
-                if data["name"] not in config_data.keys():
-                    config_data[data["name"]] = {"records":[], "timestamp": []}
-                config_data[data["name"]]["records"].append(data["fields"])
-                config_data[data["name"]]["timestamp"].append(data["timestamp"])
+                else:
+                    if data["name"] not in config_data.keys():
+                        config_data[data["name"]] = {"records":[], "timestamp": []}
+                    config_data[data["name"]]["records"].append(data["fields"])
+                    config_data[data["name"]]["timestamp"].append(data["timestamp"])
 
             f = open(self.conf_file, "w+")
-            f.write(json.dumps(config_data))
+            f.write(json.dumps(config_data, indent=4))
             f.close()
 
 
