@@ -441,18 +441,24 @@ class Node:
                         if record["brokerId"] == data["fields"]["brokerId"]:
                             config_data["RegisterBrokerRecord"]["records"][i] = data["fields"]
                             config_data["RegisterBrokerRecord"]["timestamp"][i] = data["timestamp"]
+
                 elif data["name"] == "AddReplica":
                     replicas = data["fields"]["addingReplicas"]
-                    config_data["PartitionRecord"]["records"]["replicas"].extend(replicas)
-                    config_data["PartitionRecord"]["records"]["partitionEpoch"] += 1
+                    for i,record in enumerate(config_data["PartitionRecord"]["records"]):
+                        if record["partitionId"] == data["fields"]["partitionId"]:
+                            logging.debug(config_data["PartitionRecord"]["records"][i])
+                            config_data["PartitionRecord"]["records"][i]["replicas"].extend(replicas)
+                            config_data["PartitionRecord"]["records"][i]["partitionEpoch"] += 1
 
                 elif data["name"] == "RemoveReplica":
                     remReplicas = data["fields"]["removingReplicas"]
-                    for replica in remReplicas:
-                        if replica in config_data["PartitionRecord"]["records"]["replicas"]:
-                            config_data["PartittionRecord"]["records"]["replicas"].remove(replica)
-                            
-                    config_data["PartitionRecord"]["records"]["partitionEpoch"] += 1
+                    for i,record in enumerate(config_data["PartitionRecord"]["records"]):
+                        if record["partitionId"] == data["fields"]["partitionId"]:
+                            for replica in remReplicas:
+                                if replica in config_data["PartitionRecord"]["records"][i]["replicas"]:
+                                    config_data["PartitionRecord"]["records"][i]["replicas"].remove(replica)
+
+                            config_data["PartitionRecord"]["records"][i]["partitionEpoch"] += 1
 
 
                 else:
