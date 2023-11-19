@@ -72,20 +72,20 @@ async def voteRequest(record: Request):
 
 
 #These API are endpoints used by client
-@app.post("/registerBroker")
+@app.post("/RegisterBrokerRecord")
 async def registerBroker(record: Request):
     parsed  = await record.json()
     print(parsed)
     res = node.AppendLogEntries(parsed)
     return res
 
-@app.get("/getBrokerByID/{id}")
+@app.get("/RegisterBrokerRecord/{id}")
 async def getBrokerByID(id: int):
     print(id)
     res = node.getBroker(id)
     return res
 
-@app.get("/getAllBrokers")
+@app.get("/RegisterBrokerRecord")
 async def getBrokers():
     res = node.getAllBrokers()
     return res
@@ -107,16 +107,16 @@ async def ProducerIdsRecord(record:Request):
     res = node.AppendLogEntries(parsed)
     return res
 
-@app.put("/brokerRegisterChangeBrokerRecord")
+@app.put("/BrokerRegistrationChangeBrokerRecord")
 async def UpdateBrokerRecord(record:Request):
     parsed = await record.json()
     res = node.AppendLogEntries(parsed)
     return res
 
-@app.delete("/brokerRegisterChangeBrokerRecord")
+@app.delete("/BrokerRegistrationChangeBrokerRecord")
 async def UnregisterBroker(record:Request):
     parsed = await record.json()
-    res = node.AppendLogEntries(parsed)
+    res = node.AppendLogEntries(parsed)                                     
     return res
 
 @app.post("/partitionRecord")

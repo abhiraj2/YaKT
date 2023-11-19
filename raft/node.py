@@ -439,10 +439,12 @@ class Node:
                 if data["name"] == "RegistrationChangeBrokerRecord" and "RegisterBrokerRecord" in config_data.keys():
                     for i,record in enumerate(config_data["RegisterBrokerRecord"]["records"]):
                         if record["brokerId"] == data["fields"]["brokerId"]:
+                            t = config_data["RegisterBrokerRecord"]["records"][i]["epoch"]+1
                             config_data["RegisterBrokerRecord"]["records"][i] = data["fields"]
+                            config_data["RegisterBrokerRecord"]["records"][i]["epoch"] = t
                             config_data["RegisterBrokerRecord"]["timestamp"][i] = data["timestamp"]
 
-                elif data["name"] == "AddReplica":
+                elif data["name"] == "AddReplica" and "PartitionRecord" in config_data.keys():
                     replicas = data["fields"]["addingReplicas"]
                     for i,record in enumerate(config_data["PartitionRecord"]["records"]):
                         if record["partitionId"] == data["fields"]["partitionId"]:
@@ -450,7 +452,7 @@ class Node:
                             config_data["PartitionRecord"]["records"][i]["replicas"].extend(replicas)
                             config_data["PartitionRecord"]["records"][i]["partitionEpoch"] += 1
 
-                elif data["name"] == "RemoveReplica":
+                elif data["name"] == "RemoveReplica" and "PartitionRecord" in config_data.keys():
                     remReplicas = data["fields"]["removingReplicas"]
                     for i,record in enumerate(config_data["PartitionRecord"]["records"]):
                         if record["partitionId"] == data["fields"]["partitionId"]:
@@ -461,6 +463,11 @@ class Node:
                             config_data["PartitionRecord"]["records"][i]["partitionEpoch"] += 1
 
 
+                elif data["name"] == "RegistrationDeleteBrokerRecord" and "RegisterBrokerRecord" in config_data.keys():
+                    for i,record in enumerate(config_data["RegisterBrokerRecord"]["records"]):
+                        if record["brokerId"] == data["fields"]["brokerId"]:
+                            config_data["RegisterBrokerRecord"]["records"].pop(i)
+                            config_data["RegisterBrokerRecord"]["timestamp"].pop(i)
                 else:
                     if data["name"] not in config_data.keys():
                         config_data[data["name"]] = {"records":[], "timestamp": []}
