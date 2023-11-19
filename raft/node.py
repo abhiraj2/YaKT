@@ -442,6 +442,12 @@ class Node:
                             config_data["RegisterBrokerRecord"]["records"][i] = data["fields"]
                             config_data["RegisterBrokerRecord"]["timestamp"][i] = data["timestamp"]
 
+                elif data["name"] == "AddReplica":
+                    replicas = data["fields"]["addingReplicas"]
+                    config_data["PartitionRecord"]["records"]["replicas"].extend(replicas)
+                    config_data["PartitionRecord"]["records"]["partitionEpoch"] += 1
+                elif data["name"] == "RemoveReplica":
+                    pass
                 else:
                     if data["name"] not in config_data.keys():
                         config_data[data["name"]] = {"records":[], "timestamp": []}
