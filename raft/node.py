@@ -532,6 +532,31 @@ class Node:
         now_time = datetime.datetime.now()
 
         if (now_time - request_time) > datetime.timedelta(minutes=10):
-            print("brooo red alert")
+            with self.conf_lock:
+                f = open(self.conf_file)
+                data = json.load(f)
+                res = {}
+                for key in data.keys():
+                    if key in ["RegisterBrokerRecord", "TopicRecord", "PartitionRecord"]:
+                        res[key] = data[key]
+                return {
+                    "type": "Copy",
+                    "data": res
+                }
         else:
-            logging.info("broooo green alert")
+            with self.logs_lock:
+                s_idx = 0
+                for idx, log in enumerate(self.logs):
+                    data = json.loads(log)
+                    if request_time < datetime.datetime.fromtimestamp(data["timestamp"]):
+                        s_idx = idx
+                        break
+                local_copy = []
+                for log in self.logs[s_idx:]:
+                    data = json.loads(log)
+                    if data["name"] in ["RegisterBrokerRecord", "TopicRecord", "PartitionRecord"]:
+                        local_copy.append(data)
+                return {
+                    "type": "Partial",
+                    "data": local_copy
+                }
