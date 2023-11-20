@@ -528,6 +528,12 @@ class Node:
                 }
 
     def sendClientUpdates(self, record):
+        if self.state != LEADER:
+            return {
+                "current_leader": self.current_leader,
+                "leader_port": self.node_list[int(self.current_leader)][1],
+                "success": False
+            }
         request_time = datetime.datetime.fromtimestamp(int(record["timestamp"]))
         now_time = datetime.datetime.now()
         type_lis = ["RegisterBrokerRecord", "TopicRecord", "PartitionRecord", "RegistrationChangeBrokerRecord", "AddReplica", "RemoveReplica", "RegistrationDeleteBrokerRecord"]
