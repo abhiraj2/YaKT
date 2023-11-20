@@ -530,6 +530,7 @@ class Node:
     def sendClientUpdates(self, record):
         request_time = datetime.datetime.fromtimestamp(int(record["timestamp"]))
         now_time = datetime.datetime.now()
+        type_lis = ["RegisterBrokerRecord", "TopicRecord", "PartitionRecord", "RegistrationChangeBrokerRecord", "AddReplica", "RemoveReplica", "RegistrationDeleteBrokerRecord"]
 
         if (now_time - request_time) > datetime.timedelta(minutes=10):
             with self.conf_lock:
@@ -537,7 +538,7 @@ class Node:
                 data = json.load(f)
                 res = {}
                 for key in data.keys():
-                    if key in ["RegisterBrokerRecord", "TopicRecord", "PartitionRecord"]:
+                    if key in type_lis:
                         res[key] = data[key]
                 return {
                     "type": "Copy",
@@ -554,7 +555,7 @@ class Node:
                 local_copy = []
                 for log in self.logs[s_idx:]:
                     data = json.loads(log)
-                    if data["name"] in ["RegisterBrokerRecord", "TopicRecord", "PartitionRecord"]:
+                    if data["name"] in type_lis:
                         local_copy.append(data)
                 return {
                     "type": "Partial",
